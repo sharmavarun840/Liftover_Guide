@@ -1,0 +1,39 @@
+The process of changing the coordinates in the BIM file (plink format) from hg19 to hg38 is indeed referred to as "liftover."
+
+1. Ensure you have your PLINK files (bed, bim, fam) ready for liftover.
+
+#Extract the coordinates from the BIM file: (This .bed file is different than plink bed file, beware of this)
+
+awk '{print "chr"$1, $4, $4+1, $2}' OFS="\t" input.bim > hg19.bed
+
+2. Download the chain file for hg19 to hg38:
+
+wget http://hgdownload.cse.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz
+
+gunzip hg19ToHg38.over.chain.gz
+
+
+
+
+
+3. Download the liftOver executable from UCSC:
+
+wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/liftOver
+
+chmod +x liftOver
+
+4. Run liftOver to convert the coordinates
+
+./liftOver hg19.bed hg19ToHg38.over.chain hg38.bed unlifted.bed
+
+5. Extract new positions from hg38.bed:
+
+awk '{print $4, $2}' OFS="\t" hg38.bed > new_positions.txt
+
+6. Create a new BIM file with updated positions:
+awk 'NR==FNR{a[$1]=$2; next} {if ($2 in a) $4=a[$2]; print}' OFS="\t" new_positions.txt input.bim > input_hg38.bim
+
+7. Update the Final PLINK file conversion (change the name of .bed and .fam)
+
+cp input.bed input_hg38.bed
+cp input.fam input_hg38.fam
